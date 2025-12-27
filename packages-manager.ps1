@@ -15,13 +15,17 @@ Write-Output "[1] Install packages"
 Write-Output "[2] Update packages"
 $action = Read-Host "Enter the number of your choice"
 
-if ($action -eq 1) {
-    Write-Output "You chose to install packages."
-} elseif ($action -eq 2) {
-    Write-Output "You chose to update packages."
-} else {
-    Write-Output "Invalid selection. Exiting."
-    exit
+switch ($action) {
+    1 {
+        Write-Output "You chose to install packages."
+    }
+    2 {
+        Write-Output "You chose to update packages."
+    }
+    default {
+        Write-Output "Invalid selection. Exiting."
+        exit
+    }
 }
 
 # Prompt user to select a configuration file
@@ -33,8 +37,9 @@ if ($packageConfigs.Count -eq 0) {
 
 Write-Output "Select a configuration file:"
 Write-Output "[0] All configuration files"
-for ($i = 0; $i -lt $packageConfigs.Count; $i++) {
-    Write-Output "[$($i + 1)] $($packageConfigs[$i].Name)"
+$packageConfigs | ForEach-Object -Begin { $i = 1 } -Process {
+    Write-Output "[$i] $($_.Name)"
+    $i++
 }
 
 $selection = Read-Host "Enter the number of your choice"
@@ -46,14 +51,11 @@ if (-not ($selection -as [int]) -or $selection -lt 0 -or $selection -gt $package
 if ($selection -eq 0) {
     # Perform the selected action for all configuration files
     foreach ($configFile in $packageConfigs) {
-        if ($action -eq 1) {
-            Write-Output "Installing packages from $($configFile.FullName)..."
-            Get-Content $configFile.FullName | ForEach-Object {
+        Write-Output "Processing $($configFile.FullName)..."
+        Get-Content $configFile.FullName | ForEach-Object {
+            if ($action -eq 1) {
                 choco install $_ -y
-            }
-        } elseif ($action -eq 2) {
-            Write-Output "Updating packages from $($configFile.FullName)..."
-            Get-Content $configFile.FullName | ForEach-Object {
+            } elseif ($action -eq 2) {
                 choco upgrade $_ -y
             }
         }
@@ -67,8 +69,9 @@ if ($selection -eq 0) {
         $packages = Get-Content $configFile
         while ($true) {
             Write-Output "Available packages:"
-            for ($i = 0; $i -lt $packages.Count; $i++) {
-                Write-Output "[$($i + 1)] $($packages[$i])"
+            $packages | ForEach-Object -Begin { $i = 1 } -Process {
+                Write-Output "[$i] $_"
+                $i++
             }
             Write-Output "[0] Stop selecting packages"
 
@@ -87,15 +90,14 @@ if ($selection -eq 0) {
             Write-Output "Installing package: $selectedPackage"
             choco install $selectedPackage -y
         }
-    } elseif ($action -eq 1) {
-        Write-Output "Installing packages from $configFile..."
+    } else {
+        Write-Output "Processing packages from $configFile..."
         Get-Content $configFile | ForEach-Object {
-            choco install $_ -y
-        }
-    } elseif ($action -eq 2) {
-        Write-Output "Updating packages from $configFile..."
-        Get-Content $configFile | ForEach-Object {
-            choco upgrade $_ -y
+            if ($action -eq 1) {
+                choco install $_ -y
+            } elseif ($action -eq 2) {
+                choco upgrade $_ -y
+            }
         }
     }
 }
