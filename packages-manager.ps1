@@ -1,5 +1,8 @@
 # Combined Install and Update Script for Chocolatey Packages
 
+# Temporarily bypass the execution policy to allow the script to run
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
+
 # Ensure Chocolatey is installed
 if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
     Write-Output "Chocolatey is not installed. Installing Chocolatey..."
