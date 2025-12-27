@@ -32,27 +32,70 @@ if ($packageConfigs.Count -eq 0) {
 }
 
 Write-Output "Select a configuration file:"
+Write-Output "[0] All configuration files"
 for ($i = 0; $i -lt $packageConfigs.Count; $i++) {
     Write-Output "[$($i + 1)] $($packageConfigs[$i].Name)"
 }
 
 $selection = Read-Host "Enter the number of your choice"
-if (-not ($selection -as [int]) -or $selection -lt 1 -or $selection -gt $packageConfigs.Count) {
+if (-not ($selection -as [int]) -or $selection -lt 0 -or $selection -gt $packageConfigs.Count) {
     Write-Output "Invalid selection. Exiting."
     exit
 }
 
-$configFile = $packageConfigs[$selection - 1].FullName
-
-# Perform the selected action
-if ($action -eq 1) {
-    Write-Output "Installing packages from $configFile..."
-    Get-Content $configFile | ForEach-Object {
-        choco install $_ -y
+if ($selection -eq 0) {
+    # Perform the selected action for all configuration files
+    foreach ($configFile in $packageConfigs) {
+        if ($action -eq 1) {
+            Write-Output "Installing packages from $($configFile.FullName)..."
+            Get-Content $configFile.FullName | ForEach-Object {
+                choco install $_ -y
+            }
+        } elseif ($action -eq 2) {
+            Write-Output "Updating packages from $($configFile.FullName)..."
+            Get-Content $configFile.FullName | ForEach-Object {
+                choco upgrade $_ -y
+            }
+        }
     }
-} elseif ($action -eq 2) {
-    Write-Output "Updating packages from $configFile..."
-    Get-Content $configFile | ForEach-Object {
-        choco upgrade $_ -y
+} else {
+    $configFile = $packageConfigs[$selection - 1].FullName
+
+    # Perform the selected action for the chosen configuration file
+    if ($action -eq 1 -and $configFile -like "*optional.config") {
+        Write-Output "Installing packages from $configFile..."
+        $packages = Get-Content $configFile
+        while ($true) {
+            Write-Output "Available packages:"
+            for ($i = 0; $i -lt $packages.Count; $i++) {
+                Write-Output "[$($i + 1)] $($packages[$i])"
+            }
+            Write-Output "[0] Stop selecting packages"
+
+            $packageSelection = Read-Host "Enter the number of the package to install or 0 to stop"
+            if (-not ($packageSelection -as [int]) -or $packageSelection -lt 0 -or $packageSelection -gt $packages.Count) {
+                Write-Output "Invalid selection. Try again."
+                continue
+            }
+
+            if ($packageSelection -eq 0) {
+                Write-Output "Stopping package selection."
+                break
+            }
+
+            $selectedPackage = $packages[$packageSelection - 1]
+            Write-Output "Installing package: $selectedPackage"
+            choco install $selectedPackage -y
+        }
+    } elseif ($action -eq 1) {
+        Write-Output "Installing packages from $configFile..."
+        Get-Content $configFile | ForEach-Object {
+            choco install $_ -y
+        }
+    } elseif ($action -eq 2) {
+        Write-Output "Updating packages from $configFile..."
+        Get-Content $configFile | ForEach-Object {
+            choco upgrade $_ -y
+        }
     }
 }
